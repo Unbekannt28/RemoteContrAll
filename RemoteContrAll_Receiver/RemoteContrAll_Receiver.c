@@ -6,15 +6,15 @@
 
 // UART defines
 // By default the stdout UART is `uart0`, so we will use the second one
-#define UART_ID uart1
-#define BAUD_RATE 115200
+#define UART_ID uart0 // was uart1
+#define BAUD_RATE 300
 
 // Use pins 4 and 5 for UART1
 // Pins can be changed, see the GPIO function select table in the datasheet for information on GPIO assignments
-#define UART_TX_PIN 4
-#define UART_RX_PIN 5
+#define UART_TX_PIN 0 // was 4
+#define UART_RX_PIN 1 // was 5
 
-
+uint8_t uart_buffer[4];
 
 int main()
 {
@@ -40,12 +40,12 @@ int main()
     // In a default system, printf will also output via the default UART
     
     // Send out a string, with CR/LF conversions
-    uart_puts(UART_ID, " Hello, UART!\n");
+    //uart_puts(UART_ID, " Hello, UART!\n");
     
     // For more examples of UART use see https://github.com/raspberrypi/pico-examples/tree/master/uart
 
     while (true) {
-        printf("Hello, world!\n");
-        sleep_ms(1000);
+        uart_read_blocking(UART_ID, uart_buffer, 4);
+        printf(uart_buffer);
     }
 }
