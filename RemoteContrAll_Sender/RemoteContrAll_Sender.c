@@ -1,18 +1,16 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
-#include "hardware/uart.h"
+#include "hardware/pio.h"
+#include "build/manchester_encoding.pio.h"
 
+// Need to connect a wire from GPIO0 -> GPIO3
+const uint pin_tx = 0;
+const uint pin_rx = 3;
 
-// UART defines
-// By default the stdout UART is `uart0`, so we will use the second one
-#define UART_ID uart0 // was uart1
-#define BAUD_RATE 300
-
-// Use pins 4 and 5 for UART1
-// Pins can be changed, see the GPIO function select table in the datasheet for information on GPIO assignments
-#define UART_TX_PIN 0 // was 4
-#define UART_RX_PIN 1 // was 5
+PIO pio = pio0;
+uint sm_tx = 0;
+//uint sm_rx = 1;
 
 /*
 
@@ -47,7 +45,16 @@ void send_key(int key) {
     uart_msg[1] = uart_prefix[1];
     uart_msg[2] = uart_prefix[2];
     uart_msg[3] = key;
-    uart_write_blocking(UART_ID, uart_msg, 4);
+
+    pio_sm_set_enabled(pio, sm_tx, false);
+    pio_sm_put_blocking(pio, sm_tx, 0);
+    //pio_sm_put_blocking(pio, sm_tx, 0x0ff0a55a);
+    //pio_sm_put_blocking(pio, sm_tx, 0x12345678);
+    pio_sm_put_blocking(pio, sm_tx, 0x9a019a01);
+    pio_sm_put_blocking(pio, sm_tx, 0x9a019a01);
+    pio_sm_set_enabled(pio, sm_tx, true);
+
+    pio_sm_put_blocking(pio, sm_tx, 0b0);
 }
 
 void gpio_toggle(int gpio) {
@@ -70,22 +77,26 @@ void gpio_flash(int gpio, int flashes) {
 
 int main()
 {
+
+    uint offset_tx = pio_add_program(pio, &manchester_tx_program);
+    //uint offset_rx = pio_add_program(pio, &manchester_rx_program);
+    printf("Transmit program loaded at %d\n", offset_tx);
+    //printf("Receive program loaded at %d\n", offset_rx);
+
+    manchester_tx_program_init(pio, sm_tx, offset_tx, pin_tx, 10000.f);
+    //manchester_rx_program_init(pio, sm_rx, offset_rx, pin_rx, 1.f);
+
+    
+
     stdio_init_all();
 
     for (int i = 1; i <= 19; i++) {
-        gpio_init(1);
-        gpio_set_dir(1, false);
+        gpio_init(i);
+        gpio_set_dir(i, false);
     }
 
     gpio_init(25);
     gpio_set_dir(25, true);
-
-    // Set up our UART
-    uart_init(UART_ID, BAUD_RATE);
-    // Set the TX and RX pins by using the function select on the GPIO
-    // Set datasheet for more information on function select
-    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
-    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
 
     while (true) {
         if (!gpio_get(1)) {

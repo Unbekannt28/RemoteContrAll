@@ -37,6 +37,8 @@ pico_sdk_init()
 
 add_executable(RemoteContrAll_Receiver RemoteContrAll_Receiver.c )
 
+pico_generate_pio_header(RemoteContrAll_Receiver ${CMAKE_CURRENT_LIST_DIR}/manchester_encoding.pio)
+
 pico_set_program_name(RemoteContrAll_Receiver "RemoteContrAll_Receiver")
 pico_set_program_version(RemoteContrAll_Receiver "0.1")
 
@@ -46,7 +48,8 @@ pico_enable_stdio_usb(RemoteContrAll_Receiver 1)
 
 # Add the standard library to the build
 target_link_libraries(RemoteContrAll_Receiver
-        pico_stdlib)
+        pico_stdlib
+        hardware_pio)
 
 # Add the standard include files to the build
 target_include_directories(RemoteContrAll_Receiver PRIVATE
